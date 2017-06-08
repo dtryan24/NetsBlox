@@ -88,9 +88,11 @@ RoomManager.prototype.getRoom = function(socket, ownerId, name) {
                 if (!project) {
                     this._logger.error(`No project found for ${uuid}`);
                     // If no project is found, create a new project for the user
-                    project = this.createRoom(socket, name, ownerId);
-                    this.rooms[uuid] = project;
-                    return project;
+                    return this.createRoom(socket, name, ownerId)
+                        .then(project => {
+                            this.rooms[uuid] = project;
+                            return project;
+                        });
                 }
 
                 this._logger.trace(`retrieving project ${uuid} from database`);

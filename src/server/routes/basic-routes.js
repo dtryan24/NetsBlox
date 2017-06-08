@@ -375,14 +375,19 @@ module.exports = [
                 room = RoomManager.rooms[Utils.uuid(socket.username, name)];
 
                 if (!room) {  // Create the room
-                    room = RoomManager.createRoom(socket, name);
-                    room = _.extend(room, example);
-                    // Check the room in 10 seconds
-                    setTimeout(RoomManager.checkRoom.bind(RoomManager, room), 10000);
-                }
+                    return RoomManager.createRoom(socket, name)
+                        .then(room => {
+                            room = _.extend(room, example);
 
-                // Add the user to the given room
-                return Utils.joinActiveProject(uuid, room, res);
+                            // Check the room in 10 seconds
+                            setTimeout(RoomManager.checkRoom.bind(RoomManager, room), 30000);
+                            return Utils.joinActiveProject(uuid, room, res);
+                        });
+                } else {
+
+                    // Add the user to the given room
+                    return Utils.joinActiveProject(uuid, room, res);
+                }
 
             } else {
                 room = example;

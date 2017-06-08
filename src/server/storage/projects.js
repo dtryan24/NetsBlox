@@ -301,14 +301,19 @@
         };
     };
 
-    ProjectStorage.new = function(user, activeRoom) {
-        // TODO: check for the room in the transient collection...
-        return new Project({
-            logger: logger,
-            db: transientCollection,
-            data: getDefaultProjectData(user, activeRoom),
-            room: activeRoom
-        });
+    ProjectStorage.new = function(user, room) {
+        return transientCollection.findOne({owner: user.username, name: room.name})
+            .then(data => {
+                if (data) logger.trace(`retrieving existing project for ${room.uuid}`);
+                data = data || getDefaultProjectData(user, room);
+                return new Project({
+                    logger: logger,
+                    db: transientCollection,
+                    data: data,
+                    room: room
+                });
+            });
+
     };
 
 })(exports);
