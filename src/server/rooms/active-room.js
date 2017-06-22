@@ -371,7 +371,7 @@ class ActiveRoom {
     renameRole (roleId, newId) {
         if (this.roles[newId]) {
             this._logger.warn(`Cannot rename role: "${newId}" is already taken`);
-            return;
+            return Q();
         }
 
         let sockets = this.getSocketsAt(roleId);

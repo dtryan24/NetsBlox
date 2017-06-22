@@ -487,15 +487,17 @@ NetsBloxSocket.MessageHandlers = {
 
                 // Rename the socket's role
                 this._logger.trace(`changing role name from ${this.roleId} to ${msg.role}`);
-                this._room.renameRole(this.roleId, msg.role);
-
-                // Add all the additional roles
+                return this._room.renameRole(this.roleId, msg.role);
+            })
+            .then(() => {  // Create all the additional roles
                 let roles = Object.keys(msg.roles);
                 this._logger.trace(`adding roles: ${roles.join(',')}`);
-                roles.forEach(role => this._room.silentCreateRole(role));
-
+                return Q.all(roles.map(role => this._room.silentCreateRole(role)))
+                    .then(() => roles);
+            })
+            .then(roles => {
                 // load the roles into the cache
-                roles.forEach(role => this._room.setRole(
+                return Q.all(roles.map(role => this._room.setRole(
                     role,
                     {
                         SourceCode: msg.roles[role].SourceCode,
@@ -504,10 +506,9 @@ NetsBloxSocket.MessageHandlers = {
                         SourceSize: msg.roles[role].SourceCode.length,
                         RoomName: msg.name
                     }
-                ));
-
-                this._room.onRolesChanged();
-            });
+                )));
+            })
+            .then(() => this._room.onRolesChanged());
     },
 
     // Retrieve the json for each project and respond
