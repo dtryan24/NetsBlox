@@ -356,19 +356,23 @@ class ActiveRoom {
             .then(content => this.setRole(role, content));
     }
 
-    removeRole (id) {
+    silentRemoveRole (id) {
         this._logger.trace(`removing role "${id}"`);
 
         delete this.roles[id];
 
-        return this._project.removeRole(id)
+        return this._project.removeRole(id);
+    }
+
+    removeRole (id) {
+        return this.silentRemoveRole(id)
             .then(() => {
                 this.check();
                 this.onRolesChanged();
             });
     }
 
-    renameRole (roleId, newId) {
+    silentRenameRole (roleId, newId) {
         if (this.roles[newId]) {
             this._logger.warn(`Cannot rename role: "${newId}" is already taken`);
             return Q();
@@ -380,7 +384,11 @@ class ActiveRoom {
 
         delete this.roles[roleId];
 
-        return this._project.renameRole(roleId, newId)
+        return this._project.renameRole(roleId, newId);
+    }
+
+    renameRole (roleId, newId) {
+        return this.silentCreateRole(roleId, newId)
             .then(() => {
                 this.onRolesChanged();
                 this.check();
@@ -419,6 +427,31 @@ class ActiveRoom {
                     .then(() => utils.xml.format('<room name="@" app="@">', this.name, utils.APP) +
                     roleContents.join('') + '</room>');
             });
+    }
+
+    import(data) {
+        const name = data.name;
+        const roles = data.roles;
+        const roleNames = Object.keys(roles);
+
+        this._logger.trace(`changing room name from ${this.name} to ${name}`);
+        this.update(name);
+
+        roles.forEach(role => {
+            role.MediaSize = role.Media.length;
+            role.SourceSize = role.SourceCode.length;
+        });
+
+        // TODO: remove all old roles
+        this._logger.trace(`adding roles: ${roleNames.join(',')}`);
+        return Q.all(roleNames.map(role => this.silentCreateRole(role)))
+            .then(roles => {
+                return Q.all(roleNames.map(roleName => {
+                    var role = roles[roleName];
+                    return this.setRole(roleName, role);
+                }));
+            })
+            .then(() => this.onRolesChanged(true));
     }
 }
 
