@@ -190,32 +190,25 @@ SpriteMorph.prototype.freshPalette = function (category) {
     // global custom blocks:
 
     // NetsBlox addition: start
-    if (category === 'custom') {
-        if (stage) {
-            y += unit * 1.6;
-
-            stage.globalBlocks.forEach(function (definition) {
-                var block = definition.templateInstance();
-                y += unit * 0.3;
-                block.setPosition(new Point(x, y));
-                palette.addContents(block);
-                x = 0;
-                y += block.height();
+    if (stage) {
+        y += unit * 1.6;
+        stage.globalBlocks.forEach(function (definition) {
+            var block;
+            if (definition.category === category ||
+                (category === 'variables'
+                && contains(
+                    ['lists', 'other'],
+                    definition.category
+                ))) {
+                    block = definition.templateInstance();
+                    y += unit * 0.3;
+                    block.setPosition(new Point(x, y));
+                    palette.addContents(block);
+                    x = 0;
+                    y += block.height();
+                }
             });
         }
-
-        // local custom blocks:
-
-        y += unit * 1.6;
-        this.customBlocks.forEach(function (definition) {
-            var block = definition.templateInstance();
-            y += unit * 0.3;
-            block.setPosition(new Point(x, y));
-            palette.addContents(block);
-            x = 0;
-            y += block.height();
-        });
-    }
     // NetsBlox addition: end
 
     //layout
