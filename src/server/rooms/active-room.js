@@ -8,6 +8,7 @@ var R = require('ramda'),
     utils = require('../server-utils'),
     Users = require('../storage/users'),
     Constants = require('../../common/constants');
+const Projects = require('../storage/projects');
 
 class ActiveRoom {
 
@@ -388,7 +389,7 @@ class ActiveRoom {
     }
 
     renameRole (roleId, newId) {
-        return this.silentCreateRole(roleId, newId)
+        return this.silentRenameRole(roleId, newId)
             .then(() => {
                 this.onRolesChanged();
                 this.check();
@@ -428,34 +429,9 @@ class ActiveRoom {
                     roleContents.join('') + '</room>');
             });
     }
-
-    import(data) {
-        const name = data.name;
-        const roles = data.roles;
-        const roleNames = Object.keys(roles);
-
-        this._logger.trace(`changing room name from ${this.name} to ${name}`);
-        this.update(name);
-
-        roles.forEach(role => {
-            role.MediaSize = role.Media.length;
-            role.SourceSize = role.SourceCode.length;
-        });
-
-        // TODO: remove all old roles
-        this._logger.trace(`adding roles: ${roleNames.join(',')}`);
-        return Q.all(roleNames.map(role => this.silentCreateRole(role)))
-            .then(roles => {
-                return Q.all(roleNames.map(roleName => {
-                    var role = roles[roleName];
-                    return this.setRole(roleName, role);
-                }));
-            })
-            .then(() => this.onRolesChanged(true));
-    }
 }
 
-// Factory method
+// Factory methods
 ActiveRoom.fromStore = function(logger, socket, project) {
     var room = new ActiveRoom(logger, project.name, project.owner);
 
@@ -472,6 +448,20 @@ ActiveRoom.fromStore = function(logger, socket, project) {
         room.onRolesChanged();
         return room;
     });
+};
+
+ActiveRoom.fromImport = function(logger, socket, data) {
+    const room = new ActiveRoom(logger, data.name, socket.username);
+
+    return room.setOwner(socket.username)
+        .then(() => {  // Create all the additional roles
+            const names = Object.keys(data.roles);
+            const roles = names.map(name => data.roles[name]);
+            this._logger.trace(`adding roles: ${names.join(',')}`);
+            return room.setRoles(roles);
+        })
+        .then(() => Projects.new(socket, room))  // attach storage
+        .then(() => room);
 };
 
 module.exports = ActiveRoom;

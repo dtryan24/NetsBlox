@@ -8,6 +8,7 @@ describe('active-room', function() {
         Logger = require(ROOT_DIR + 'src/server/logger'),
         logger = new Logger('active-room'),
         utils = require(ROOT_DIR + 'test/assets/utils'),
+        sUtils = utils.reqSrc('server-utils'),
         owner = {
             username: 'test',
             _messages: [],

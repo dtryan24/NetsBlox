@@ -107,6 +107,13 @@ RoomManager.prototype.getRoom = function(socket, ownerId, name) {
     }
 };
 
+RoomManager.prototype.register = function(room) {
+    // TODO: check that the position isn't taken!
+    const uuid = utils.uuid(room.owner, room.name);
+    this.rooms[uuid] = room;
+    return room;
+};
+
 RoomManager.prototype.checkRoom = function(room) {
     var uuid = utils.uuid(room.owner, room.name),
         sockets = room.sockets();
@@ -116,6 +123,11 @@ RoomManager.prototype.checkRoom = function(room) {
         this._logger.trace('Removing empty room: ' + uuid);
         room.close().then(() => delete this.rooms[uuid]);
     }
+};
+
+RoomManager.prototype.import = function(socket, data) {
+    return ActiveRoom.fromImport(this._logger, socket, data)
+        .then(room => this.register(room));
 };
 
 module.exports = new RoomManager();
