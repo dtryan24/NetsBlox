@@ -33,7 +33,7 @@ NPlayer.prototype.start = function() {
 
     // populate the players list
     this.players = [];
-    
+
     this.players = this.socket._room.sockets().map(socket => {
         return {role: socket.roleId, socket: socket};
     });
@@ -55,7 +55,7 @@ NPlayer.prototype.start = function() {
 };
 
 // get the number of players
-NPlayer.prototype.getN = function() {    
+NPlayer.prototype.getN = function() {
     return this.players.length;
 };
 
@@ -91,7 +91,7 @@ NPlayer.prototype.getNext = function() {
 // signal end of turn
 NPlayer.prototype.endTurn = function(next) {
 
-    if(this.active === null || this.socket.roleId != this.players[this.active].role ) {
+    if(this.active === null || !this.players[this.active] || this.socket.roleId != this.players[this.active].role ) {
         // bail out if there's no game yet, or if it's somebody else's turn
         return false;
     } else {
@@ -106,7 +106,7 @@ NPlayer.prototype.endTurn = function(next) {
             if(nextIndex === -1) {
                 info('Role ' +next+ ' is not part of the game');
                 return false;
-            }                       
+            }
         }
 
         // save previous player's index, and make the next player active
