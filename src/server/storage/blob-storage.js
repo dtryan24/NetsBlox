@@ -8,76 +8,59 @@
 
 const Logger = require('../logger'),
     logger = new Logger('netsblox:blob-storage'),
-    hash = require('../../common/sha512').hex_sha512,
-    path = require('path'),
-    fse = require('fs-extra'),
-    fs = require('fs'),
     Q = require('q'),
-    exists = require('exists-file'),
-    BASE_DIR = process.env.NETSBLOX_BLOB_DIR ||
-        path.join(__dirname, '..', '..', '..', 'blob-storage');
+    AWS = require('aws-sdk');
 
 var BlobStorage = function() {
     // create the given directory, if needed
-    logger.info(`blob directory is ${BASE_DIR}`);
-    this.configure(BASE_DIR);
+    this._client = new AWS.S3({
+        endPoint: process.env.S3_ENDPOINT || 'http://127.0.0.1:9000',
+        //port: process.env.S3_PORT || 9000,
+        //secure: process.env.S3_SECURE !== undefined ? process.env.S3_SECURE : true,
+        accessKeyId: process.env.S3_KEY_ID,
+        secretAccessKey: process.env.S3_SECRET_KEY,
+        s3ForcePathStyle: 'true',
+        signatureVersion: 'v4'
+    });
 };
 
-BlobStorage.prototype._verifyExists = function() {
-    if (!exists.sync(this.baseDir)) {
-        logger.info(`created blob directory at ${this.baseDir}`);
-        fse.ensureDirSync(this.baseDir);
-    }
-};
+// TODO: Update the following methods
+BlobStorage.prototype.store = function(owner, project, role, type, data) {
+    var bucket = owner,
+        key = `${type}@${role}@${project}`;
 
-BlobStorage.prototype.configure = function(dir) {
-    this.baseDir = dir;
-};
-
-BlobStorage.prototype.getDirectoryAndFile = function(hash) {
-    if (!hash || !hash.substring) {
-        throw Error(`Invalid hash "${hash}"`);
-    }
-
-    const dirname = path.join(this.baseDir, hash.substring(0, 2));
-    const filename = path.join(dirname, hash.substring(2));
-
-    return [dirname, filename];
-};
-
-BlobStorage.prototype.store = function(data) {
-    var id = hash(data),
-        [dirname, filename] = this.getDirectoryAndFile(id);
-
-    logger.info(`storing data in the blob: ${id}`);
-
-    // store the data and return the hash
-    this._verifyExists();
-    return Q.nfcall(fse.ensureDir, dirname)
+    logger.info(`storing data in the blob: ${owner}/${key}`);
+    return Q.ninvoke(this._client, 'putObject', {Bucket: bucket, Key: key, Body: data})
         .then(() => {
-            if (!exists.sync(filename)) {
-                return Q.nfcall(fs.writeFile, filename, data);
-            } else {
-                logger.trace(`data already stored. skipping write ${id}`);
-                return Q();
-            }
+            return {
+                Bucket: bucket,
+                Key: key
+            };
         })
-        .then(() => id)
         .fail(err => {
-            logger.error(`Could not write to ${filename}: ${err}`);
+            logger.error(`Could not write to ${owner}/${key}: ${err}`);
             throw err;
         });
 };
 
 BlobStorage.prototype.get = function(id) {
-    var filename = this.getDirectoryAndFile(id)[1];
+    var data = '';
+    var deferred = Q.defer();
 
-    // get the data from the given hash
-    return Q.nfcall(fs.readFile, filename, 'utf8')
-        .fail(err => {
-            logger.error(`Could not read from ${filename}: ${err}`);
+    this._client.getObject(id)
+        .on('httpData', chunk => data += chunk)
+        .on('httpDone', () => deferred.resolve(data))
+        .on('error', err => {
+            logger.error(`Could not read from ${JSON.stringify(id)}: ${err}`);
             throw err;
         });
 };
 
+BlobStorage.prototype.delete = function(id) {
+    // TODO: delete the blob data on project deletion!
+    logger.trace(`deleting blob data: ${JSON.stringify(id)}`);
+    return Q.ninvoke(this._client, 'deleteObject', id);
+};
+
+// TODO: copy object?
 module.exports = new BlobStorage();

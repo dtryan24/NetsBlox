@@ -55,6 +55,7 @@
     "just.randomstring": "^0.1.1",
     "lodash": "^4.8.2",
     "lwip": "0.0.9",
+    "minio": "^3.2.1",
     "moment": "^2.18.1",
     "mongodb": "^2.2.22",
     "moviedb": "^0.2.7",
