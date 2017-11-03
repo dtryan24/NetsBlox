@@ -34,7 +34,7 @@ const Projects = reqSrc('storage/projects');
                     .split('// Morph')[0]
                     .split('// Global Functions')[1];
             }
-        
+
             if (file.includes('store.js')) {  // remove the SnapSerializer stuff
                 code = code.split('StageMorph.prototype.toXML')[0];
             }
@@ -85,24 +85,24 @@ const createSocket = function(username) {
 const createRoom = function(config) {
     // Get the room and attach a project
     const room = new ActiveRoom(logger, config.name, config.owner);
-    
+
     Object.keys(config.roles).forEach(name => {
         config.roles[name] = config.roles[name] || [];
         room.silentCreateRole(name);
         config.roles[name].forEach(username => {
             const socket = createSocket(username);
-            
+
             room.silentAdd(socket, name);
         });
     });
 
     const owner = room.getOwnerSockets()[0];
-    
+
     //  Add response capabilities
     room.sockets().forEach(socket => {
         socket._socket.addResponse('project-request', sendEmptyRole.bind(socket));
     });
-    
+
     if (owner) {
         return Projects.new(owner, room)
             .then(project => {

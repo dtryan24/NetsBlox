@@ -106,12 +106,14 @@ var computeAspectRatioPadding = function(width, height, ratio){
         diff = expectedHeight - height;
         top = bottom = diff/2;
         trace(`new dims should be ${width}x${height+diff}`);
+        height += diff;
     } else {  // add padding to the width
         diff = ratio * height - width;
         left = right = diff/2;
         trace(`new dims should be ${width+diff}x${height}`);
+        width += diff;
     }
-    return {left, right, top, bottom};
+    return {width, height, left, right, top, bottom};
 };
 
 var isSocketUuid = function(name) {

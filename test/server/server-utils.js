@@ -27,6 +27,14 @@ describe('server-utils', function() {
                 assert(Math.abs(newRatio - r) < 0.1);
             });
 
+            it(`should include correct width`, function() {
+                assert.equal(pad.width, newWidth);
+            });
+
+            it(`should include correct height`, function() {
+                assert.equal(pad.height, newHeight);
+            });
+
             ['top', 'bottom', 'left', 'right'].forEach(side => {
                 it(`should have non-negative ${side} pad`, function() {
                     assert(pad[side] >= 0, `${side} has pad of ${pad[side]}`);
