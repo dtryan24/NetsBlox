@@ -16,13 +16,14 @@ var _ = require('lodash'),
     error = debug('netsblox:api:projects:error');
 
 const Projects = require('../storage/projects');
+//const sharp = require('sharp');
 
 
 try {
-    info('trying to load lwip');
-    var lwip = require('lwip');
+    info('trying to load sharp');
+    var sharp = require('sharp');
 } catch (e) {
-    error('Could not load lwip:');
+    error('Could not load sharp:', e);
     error('aspectRatio for image thumbnails will not be supported');
 }
 
@@ -133,27 +134,22 @@ var sendProjectTo = function(project, res) {
         .catch(err => res.status(500).send('ERROR: ' + err));
 };
 
-const TRANSPARENT = [0,0,0,0];
+const TRANSPARENT = {r: 0, g: 0, b: 0, alpha: 256};
 
 var padImage = function (buffer, ratio) {  // Pad the image to match the given aspect ratio
-    var lwip = require('lwip');
-    return Q.ninvoke(lwip, 'open', buffer, 'png')
-        .then(image => {
-            var width = image.width(),
-                height = image.height(),
+    // Get the original image width, height
+    let image = sharp(buffer);
+    return image
+        .metadata()
+        .then(metadata => {
+            var width = metadata.width,
+                height = metadata.height,
                 pad = Utils.computeAspectRatioPadding(width, height, ratio);
 
-            return Q.ninvoke(
-                image,
-                'pad',
-                pad.left,
-                pad.top,
-                pad.right,
-                pad.bottom,
-                TRANSPARENT
-            );
-        })
-        .then(image => Q.ninvoke(image, 'toBuffer', 'png'));
+            return image.background(TRANSPARENT)
+                .extend(pad)
+                .toBuffer();
+        });
 };
 
 
@@ -162,13 +158,13 @@ var applyAspectRatio = function (thumbnail, aspectRatio) {
         .replace(/^data:image\/png;base64,|^data:image\/jpeg;base64,|^data:image\/jpg;base64,|^data:image\/bmp;base64,/, '');
     var buffer = new Buffer(image, 'base64');
 
-    if (aspectRatio && typeof lwip !== 'undefined') {
+    if (aspectRatio && typeof sharp !== 'undefined') {
         trace(`padding image with aspect ratio ${aspectRatio}`);
         aspectRatio = Math.max(aspectRatio, 0.2);
         aspectRatio = Math.min(aspectRatio, 5);
         return padImage(buffer, aspectRatio);
     } else {
-        if (aspectRatio) error('module lwip is not available thus setting aspect ratio will not work');
+        if (aspectRatio) error('module sharp is not available thus setting aspect ratio will not work');
         return Q(buffer);
     }
 };
