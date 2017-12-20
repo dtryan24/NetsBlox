@@ -42,8 +42,10 @@ var tryLogIn = function(req, res, cb, skipRefresh) {
                 return cb(err);
             }
 
+            console.log('token', token);
             req.session.username = token.username;
             if (!skipRefresh) {
+                console.log('refreshing cookie');
                 refreshCookie(res, token);
             }
             return cb(null, true);

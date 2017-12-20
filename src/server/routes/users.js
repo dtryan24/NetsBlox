@@ -37,8 +37,9 @@ module.exports = [
         Note: '',
         Handler: function(req, res) {
             log('received logout request!');
-            middleware.tryLogIn(req, res, err => {
-                if (err) {
+            middleware.tryLogIn(req, res, (err, suc) => {
+                log('tryLogIn response is', suc);
+                if (err || !suc) {
                     return res.status(400).send(err);
                 }
 
@@ -48,7 +49,8 @@ module.exports = [
                 if (socket) {
                     socket.onLogout();
                 }
-
+                if (!req.session) log('there is no session for the logout request')
+                log('session.username', req.session.username);
                 log(`${req.session.username} has logged out`);
                 // Delete the cookie
                 req.session.destroy();
